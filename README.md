@@ -1,6 +1,6 @@
 # 📚 N8N Skills Library
 
-> ไลบรารี Skills สำหรับ n8n workflow automation platform - เอกสารครบถ้วนจาก official documentation
+> ไลบรารี Skills สำหรับ n8n workflow automation platform - เอกสารครบถ้วนพร้อม JSON workflow generation
 
 ## 🎯 ภาพรวม
 
@@ -13,6 +13,15 @@ n8n เป็นเครื่องมือที่ช่วยให้ค�
 - ✅ **Automate งาน** - สร้าง Workflow อัตโนมัติแบบ Visual
 - ✅ **AI Integration** - รวม LangChain และ AI Models เข้าใน Workflow
 - ✅ **Self-host ได้** - ติดตั้งบน Server ของตัวเองเพื่อความปลอดภัย
+- ✅ **JSON-based** - สร้าง, Import, และ Version Control ได้ผ่าน JSON
+
+### ⭐ ความสามารถหลัก (v2.0.0)
+
+- 🔧 **JSON Node Configs** — ข้อมูล type identifiers และ parameters ครบทุก node
+- 📦 **Importable Workflows** — 7+ ตัวอย่าง workflow พร้อม import ใช้งานได้ทันที
+- 🤖 **AI Agent JSON** — Config สำหรับ OpenAI, Anthropic, Gemini, Ollama, Tools, Memory
+- 🔗 **Connection Patterns** — รูปแบบการเชื่อมต่อทั้ง main และ AI special types
+- 📊 **400+ Integrations** — เอกสาร built-in nodes ครบถ้วน
 
 ---
 
@@ -22,17 +31,17 @@ n8n เป็นเครื่องมือที่ช่วยให้ค�
 Skills_N8N/
 │
 ├── SKILL.md                    # ไฟล์ Skills หลัก (สำคัญที่สุด)
-├── CLAUDE.md                   # สรุปสำหรับ AI
+├── CLAUDE.md                   # สรุปสำหรับ AI (พร้อม node type identifiers)
 ├── README.md                   # ไฟล์นี้ (เอกสารภาษาไทย)
 │
 └── resources/                  # เอกสารเพิ่มเติม
-    ├── core_concepts.md        # แนวคิดหลัก (Workflows, Nodes, Executions)
+    ├── core_concepts.md        # Nodes, Triggers, Flow Logic (พร้อม JSON configs)
     ├── integrations.md         # การเชื่อมต่อ (400+ nodes, credentials)
-    ├── advanced_ai.md          # AI และ LangChain
-    ├── code_and_expressions.md # การเขียนโค้ดและ Expressions
-    ├── hosting_and_deployment.md # การติดตั้งและ Deploy
+    ├── advanced_ai.md          # AI/LangChain (พร้อม JSON configs ทุก model)
+    ├── code_and_expressions.md # Code Node, Expressions, JMESPath
+    ├── hosting_and_deployment.md # Docker, Configuration, Scaling
     ├── api_reference.md        # REST API Reference
-    ├── workflow_patterns.md    # รูปแบบ Workflow ที่ใช้บ่อย
+    ├── workflow_patterns.md    # Patterns + Importable Workflow JSON
     └── troubleshooting.md      # แก้ไขปัญหา
 ```
 
@@ -43,22 +52,21 @@ Skills_N8N/
 ### สำหรับ AI (Antigravity/Claude)
 
 1. อ่านไฟล์ `SKILL.md` เป็นหลัก
-2. ใช้ `CLAUDE.md` สำหรับ Quick Reference
+2. ใช้ `CLAUDE.md` สำหรับ Quick Reference (มี node type identifiers)
 3. ลงรายละเอียดในไฟล์ `resources/` ตามหัวข้อที่ต้องการ
+4. ใช้ `resources/workflow_patterns.md` สำหรับตัวอย่าง importable JSON
 
 ### สำหรับผู้ใช้งาน
 
-เอกสารนี้ครอบคลุมหัวข้อต่อไปนี้:
-
 | หัวข้อ | ไฟล์ | คำอธิบาย |
 |--------|------|----------|
-| **พื้นฐาน** | `core_concepts.md` | Workflows, Nodes, Connections, Executions |
+| **พื้นฐาน** | `core_concepts.md` | Nodes, Triggers, Flow Logic พร้อม JSON configs |
 | **การเชื่อมต่อ** | `integrations.md` | 400+ Nodes, Community Nodes, Credentials |
-| **AI** | `advanced_ai.md` | LangChain, AI Agents, Chat Workflows |
-| **โค้ด** | `code_and_expressions.md` | Expressions, Code Node, JavaScript/Python |
+| **AI** | `advanced_ai.md` | LangChain, AI Agents, Memory, Tools พร้อม JSON |
+| **โค้ด** | `code_and_expressions.md` | Expressions, Code Node, JMESPath |
 | **Hosting** | `hosting_and_deployment.md` | Docker, Configuration, Scaling |
 | **API** | `api_reference.md` | REST API Endpoints |
-| **Patterns** | `workflow_patterns.md` | รูปแบบ Workflow ที่ใช้บ่อย |
+| **Patterns** | `workflow_patterns.md` | Patterns + Importable Workflow JSON |
 | **แก้ปัญหา** | `troubleshooting.md` | Common Issues และวิธีแก้ |
 
 ---
@@ -67,7 +75,7 @@ Skills_N8N/
 
 ### 1. Workflow คืออะไร?
 
-Workflow คือชุดของ Nodes ที่เชื่อมต่อกันเพื่อ Automate กระบวนการ:
+Workflow คือชุดของ Nodes ที่เชื่อมต่อกัน เป็น JSON object:
 
 ```
 Trigger → Action → Action → Output
@@ -77,15 +85,16 @@ Trigger → Action → Action → Output
 - 📧 รับ Email → ดึงข้อมูล → บันทึกลง Database
 - 🔔 Webhook → ประมวลผลคำสั่ง → ส่งแจ้งเตือน Slack
 - ⏰ ตั้งเวลา → ดึงข้อมูล API → สร้างรายงาน
+- 🤖 Chat Trigger → AI Agent → ตอบคำถามอัตโนมัติ
 
 ### 2. Node Types
 
-| ประเภท | คำอธิบาย | ตัวอย่าง |
-|--------|----------|----------|
-| **Trigger** | เริ่มต้น Workflow | Webhook, Schedule, Email |
-| **Action** | ทำงานบางอย่าง | HTTP Request, Send Email |
-| **Core** | ควบคุม Flow | IF, Switch, Merge, Code |
-| **AI** | ประมวลผล AI | AI Agent, Chat Model |
+| ประเภท | คำอธิบาย | ตัวอย่าง Type Identifier |
+|--------|----------|--------------------------|
+| **Trigger** | เริ่มต้น Workflow | `n8n-nodes-base.webhook` |
+| **Action** | ทำงานบางอย่าง | `n8n-nodes-base.httpRequest` |
+| **Core** | ควบคุม Flow | `n8n-nodes-base.if` |
+| **AI** | ประมวลผล AI | `@n8n/n8n-nodes-langchain.agent` |
 
 ### 3. Expressions
 
@@ -96,13 +105,16 @@ Trigger → Action → Action → Output
 {{ $json.fieldName }}
 
 // ข้อมูลจาก Node อื่น
-{{ $node["NodeName"].json }}
+{{ $('Node Name').item.json.field }}
 
 // Environment Variable
 {{ $env.API_KEY }}
 
 // เวลาปัจจุบัน
 {{ $now.toFormat('yyyy-MM-dd') }}
+
+// $fromAI() - ให้ AI Agent กำหนดค่าเอง
+{{ $fromAI('paramName', 'description', 'string') }}
 ```
 
 ### 4. AI Integration
@@ -112,10 +124,12 @@ n8n รองรับ AI ผ่าน LangChain:
 ```
 Chat Trigger → AI Agent → Response
                   ↑
-            Chat Model (GPT-4)
+             Chat Model (GPT-4/Claude/Gemini)
                   ↑
-            Vector Store (RAG)
+             Memory + Tools
 ```
+
+รองรับ: OpenAI, Anthropic, Google Gemini, Ollama (local)
 
 ---
 
@@ -149,24 +163,32 @@ n8n start
 ### 1. Webhook + Database
 
 ```
-Webhook → Set Node → PostgreSQL Insert → Response
+Webhook → Set Node → PostgreSQL Insert → Respond to Webhook
 ```
 
 ### 2. Schedule + API Sync
 
 ```
-Schedule (ทุกชั่วโมง) → HTTP GET API → Transform → Update CRM
+Schedule (ทุกชั่วโมง) → HTTP GET API → Transform → Filter → Update CRM
 ```
 
-### 3. AI Chatbot
+### 3. AI Chatbot with Tools
 
 ```
 Chat Trigger → AI Agent → Response
                  ↑
-           OpenAI GPT-4
+           OpenAI GPT-4o
                  ↑
-          Memory + Tools
+          Memory + Calculator + HTTP Tool
 ```
+
+### 4. Data ETL Pipeline
+
+```
+Schedule (2AM) → Extract → Code (Transform) → Filter → Remove Duplicates → Load DB
+```
+
+> 💡 ดูตัวอย่าง JSON ที่ import ได้ทันทีใน `resources/workflow_patterns.md`
 
 ---
 
@@ -184,10 +206,11 @@ Chat Trigger → AI Agent → Response
 
 ## 📝 หมายเหตุ
 
-เอกสารนี้สร้างขึ้นจากการอ่าน **Official Documentation** ของ n8n (https://docs.n8n.io/) อย่างละเอียด เพื่อให้ครอบคลุมทุกหัวข้อที่จำเป็นสำหรับการใช้งาน n8n ตั้งแต่พื้นฐานจนถึงขั้นสูง
+เอกสารนี้สร้างขึ้นจากการอ่าน **Official Documentation** ของ n8n (https://docs.n8n.io/) อย่างละเอียด และรวมเนื้อหาจาก JSON workflow builder reference เพื่อให้ครอบคลุมทั้งความรู้เชิงแนวคิดและ JSON configs ที่ใช้งานจริง
 
 **สร้างเมื่อ**: มกราคม 2026  
-**เวอร์ชัน**: 1.0.0  
+**อัพเดทล่าสุด**: กุมภาพันธ์ 2026  
+**เวอร์ชัน**: 2.0.0  
 **อ้างอิง**: n8n Documentation v1.19.4+
 
 ---
@@ -196,9 +219,10 @@ Chat Trigger → AI Agent → Response
 
 ไลบรารีนี้ออกแบบมาให้ AI (Antigravity, Claude, etc.) สามารถ:
 
-1. **อ่านและเข้าใจ** การทำงานของ n8n
-2. **สร้าง Workflow** ตามคำขอของผู้ใช้
-3. **แก้ไขปัญหา** ที่เกี่ยวกับ n8n
-4. **ให้คำแนะนำ** Best Practices
+1. **สร้าง Workflow JSON** ที่ import เข้า n8n ได้ทันที
+2. **อ่านและเข้าใจ** node type identifiers ครบทุกตัว
+3. **สร้าง AI Agent Workflows** พร้อม LangChain integration
+4. **แก้ไขปัญหา** ที่เกี่ยวกับ n8n
+5. **ให้คำแนะนำ** Best Practices
 
 เมื่อต้องการข้อมูลเกี่ยวกับ n8n ให้อ่าน `SKILL.md` เป็นอันดับแรก จากนั้นค้นหารายละเอียดเพิ่มเติมในโฟลเดอร์ `resources/`

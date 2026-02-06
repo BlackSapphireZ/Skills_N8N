@@ -1,11 +1,15 @@
 ---
 name: n8n Workflow Automation
-description: Comprehensive skill for building workflow automations with n8n - the fair-code licensed automation platform with AI capabilities
+description: >  
+  Comprehensive skill for building, generating, and debugging n8n workflow automation JSON files.
+  Use when the user asks to create, edit, debug, or explain n8n workflows, including AI agent workflows,
+  LangChain integrations, webhook automations, scheduled tasks, data transformations, or any n8n-related task.
+  Includes exact JSON node configurations and importable workflow examples.
 ---
 
 # n8n Workflow Automation Skill
 
-This skill provides comprehensive knowledge for building workflow automations using n8n, based on official documentation from https://docs.n8n.io/
+This skill provides comprehensive knowledge for building and generating workflow automations using n8n, based on official documentation from https://docs.n8n.io/. It includes exact JSON node configurations for direct import into n8n, importable workflow examples, and AI agent integration details.
 
 ## Overview
 
@@ -16,6 +20,7 @@ n8n (pronounced n-eight-n) is a fair-code licensed workflow automation tool that
 - **Deployment Options**: npm, Docker, or Cloud hosting
 - **Privacy-focused**: Self-host for privacy and security
 - **AI-capable**: Built-in LangChain integration for AI workflows
+- **JSON-based**: All workflows are JSON — can be generated, imported, and version-controlled
 
 ---
 
@@ -460,6 +465,64 @@ curl -X GET https://n8n.example.com/api/v1/workflows \
 
 ---
 
+## Workflow JSON Generation
+
+### JSON Structure
+
+Every n8n workflow is a JSON object with this structure:
+
+```json
+{
+  "name": "Workflow Name",
+  "nodes": [
+    {
+      "parameters": { /* node-specific config */ },
+      "id": "unique-uuid",
+      "name": "Node Display Name",
+      "type": "n8n-nodes-base.nodeType",
+      "typeVersion": 1,
+      "position": [250, 300]
+    }
+  ],
+  "connections": {
+    "Source Node Name": {
+      "main": [
+        [{ "node": "Target Node Name", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
+```
+
+### Workflow Building Process
+
+1. **Pick Trigger**: Choose appropriate trigger node (manual, webhook, schedule, chat)
+2. **Add Logic**: Add flow control (If, Switch, Loop, Merge)
+3. **Transform Data**: Use Set, Filter, Sort, Code nodes
+4. **Connect Actions**: Add app/API nodes (HTTP Request, Database, etc.)
+5. **Wire Connections**: Connect nodes via `connections` object
+6. **Position Nodes**: Start at [250, 300], space ~250px horizontally
+
+### Critical Rules for Generated JSON
+
+- Always include `"settings": { "executionOrder": "v1" }`
+- Use correct `type` identifiers (see `resources/core_concepts.md` for full list)
+- Use correct `typeVersion` for each node
+- Every `name` must be unique within the workflow
+- Webhook nodes need a `webhookId` field
+- AI sub-nodes use special connection types (`ai_languageModel`, `ai_memory`, `ai_tool`)
+
+### $fromAI() Function
+
+Use in AI Agent tool parameters to let the AI dynamically provide values:
+
+```
+{{ $fromAI('paramName', 'description of what this param is', 'string') }}
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -513,11 +576,17 @@ $input.all()
 $json.fieldName
 
 // Reference node output
-$node["NodeName"].json
+$('NodeName').item.json
 
 // Environment variable
 $env.MY_VAR
 
 // Current timestamp
 $now.toISO()
+
+// Inline conditional
+$if(condition, trueVal, falseVal)
+
+// JMESPath query
+$jmespath($json, 'expression')
 ```

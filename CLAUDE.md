@@ -1,6 +1,6 @@
 # CLAUDE.md - N8N Skills for AI Assistants
 
-> AI-optimized documentation for understanding and using n8n workflow automation.
+> AI-optimized documentation for understanding and using n8n workflow automation. Includes JSON workflow generation capabilities.
 
 ## Quick Reference
 
@@ -10,71 +10,144 @@
 - 400+ built-in integrations
 - AI/LangChain integration support
 - Self-hosting or cloud options
+- **All workflows are JSON** — can be generated, imported, and version-controlled
 
 ## Core Architecture
 
 ```
 Workflow = Trigger Node → Action Nodes → Output
              │
-          Connections (data flow)
+          Connections (main + AI special types)
              │
-          Expressions (data transformation)
+          Expressions ({{ $json.field }})
 ```
+
+## Workflow JSON Structure
+
+Every n8n workflow is a JSON object:
+
+```json
+{
+  "name": "Workflow Name",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "unique-uuid",
+      "name": "Node Display Name",
+      "type": "n8n-nodes-base.nodeType",
+      "typeVersion": 1,
+      "position": [250, 300]
+    }
+  ],
+  "connections": {
+    "Source Node": {
+      "main": [[{ "node": "Target Node", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
+```
+
+### Critical Rules for JSON Generation
+- Always include `"settings": { "executionOrder": "v1" }`
+- Use correct `type` identifiers (see resources/core_concepts.md)
+- Every node `name` must be unique
+- Webhook nodes need `webhookId`
+- AI sub-nodes use special connection types (`ai_languageModel`, `ai_memory`, `ai_tool`)
+- Start positioning at [250, 300], space ~250px horizontally
 
 ## Key Concepts
 
 | Concept | Description |
 |---------|-------------|
-| **Workflow** | Collection of connected nodes |
-| **Node** | Building block (trigger, action, core) |
+| **Workflow** | Collection of connected nodes (JSON) |
+| **Node** | Building block (trigger, action, core, AI) |
 | **Trigger** | Starts workflow (webhook, schedule, event) |
 | **Action** | Performs operation (API call, DB, email) |
 | **Expression** | Dynamic data access `{{ $json.field }}` |
 | **Execution** | Single workflow run record |
 | **Credential** | Stored authentication |
+| **$fromAI()** | Let AI Agent fill parameter values |
+
+## Node Type Quick Reference (with JSON type identifiers)
+
+### Triggers
+| Node | Type Identifier |
+|------|----------------|
+| Manual | `n8n-nodes-base.manualWorkflowTrigger` |
+| Webhook | `n8n-nodes-base.webhook` |
+| Schedule | `n8n-nodes-base.scheduleTrigger` |
+| Chat Trigger | `@n8n/n8n-nodes-langchain.chatTrigger` |
+
+### Core / Flow Logic
+| Node | Type Identifier |
+|------|----------------|
+| If | `n8n-nodes-base.if` |
+| Switch | `n8n-nodes-base.switch` |
+| Merge | `n8n-nodes-base.merge` |
+| Loop Over Items | `n8n-nodes-base.splitInBatches` |
+| Wait | `n8n-nodes-base.wait` |
+| Execute Sub-Workflow | `n8n-nodes-base.executeWorkflow` |
+| Code | `n8n-nodes-base.code` |
+| HTTP Request | `n8n-nodes-base.httpRequest` |
+| Set / Edit Fields | `n8n-nodes-base.set` |
+| Filter | `n8n-nodes-base.filter` |
+| Sort | `n8n-nodes-base.sort` |
+| Respond to Webhook | `n8n-nodes-base.respondToWebhook` |
+
+### AI Nodes
+| Node | Type Identifier |
+|------|----------------|
+| AI Agent | `@n8n/n8n-nodes-langchain.agent` |
+| OpenAI Chat Model | `@n8n/n8n-nodes-langchain.lmChatOpenAi` |
+| Anthropic Chat Model | `@n8n/n8n-nodes-langchain.lmChatAnthropic` |
+| Google Gemini | `@n8n/n8n-nodes-langchain.lmChatGoogleGemini` |
+| Ollama | `@n8n/n8n-nodes-langchain.lmChatOllama` |
+| Buffer Memory | `@n8n/n8n-nodes-langchain.memoryBufferWindow` |
+| Postgres Memory | `@n8n/n8n-nodes-langchain.memoryPostgresChat` |
+| Workflow Tool | `@n8n/n8n-nodes-langchain.toolWorkflow` |
+| HTTP Request Tool | `@n8n/n8n-nodes-langchain.toolHttpRequest` |
+| Code Tool | `@n8n/n8n-nodes-langchain.toolCode` |
+| MCP Client | `@n8n/n8n-nodes-langchain.mcpClient` |
+
+### AI Connection Types
+| Type | Purpose |
+|------|---------|
+| `main` | Standard data flow |
+| `ai_languageModel` | Chat/LLM model |
+| `ai_memory` | Conversation memory |
+| `ai_tool` | Agent tools |
+| `ai_outputParser` | Response formatting |
+| `ai_retriever` | RAG retriever |
+| `ai_document` | Document input |
+| `ai_embedding` | Embedding model |
 
 ## Essential Expression Patterns
 
 ```javascript
-// Access data
-{{ $json.fieldName }}           // Current item
-{{ $input.first().json }}       // First input
-{{ $node["NodeName"].json }}    // Other node output
+// Current item
+{{ $json.fieldName }}
+{{ $json.nested?.field ?? 'default' }}
+
+// Other node's data
+{{ $('Node Name').item.json.field }}
+{{ $('Node Name').first().json.field }}
+{{ $('Node Name').all() }}
 
 // Environment
-{{ $env.API_KEY }}              // Env variable
-{{ $now.toISO() }}              // Current time
+{{ $env.API_KEY }}
+{{ $vars.myVariable }}
+{{ $now.toISO() }}
+{{ $now.toFormat('yyyy-MM-dd') }}
 
-// Transform
-{{ $json.items.filter(i => i.active) }}
-{{ $json.name.toUpperCase() }}
+// Helpers
+{{ $if(condition, trueVal, falseVal) }}
+{{ $ifEmpty(value, defaultValue) }}
+{{ $jmespath($json, 'expression') }}
 
-// Defaults
-{{ $json.value ?? 0 }}
-{{ $json.user?.email ?? 'none' }}
+// $fromAI() - for AI Agent tool params
+{{ $fromAI('paramName', 'description', 'string') }}
 ```
-
-## Node Type Quick Reference
-
-### Triggers
-- `Webhook` - HTTP endpoint
-- `Schedule` - Cron/interval
-- `Chat Trigger` - AI chat
-- `Manual Trigger` - Test execution
-
-### Core Nodes
-- `IF` - Conditional branch
-- `Switch` - Multi-condition
-- `Merge` - Combine data
-- `Code` - JavaScript/Python
-- `HTTP Request` - API calls
-- `Set` - Modify data
-
-### AI Nodes
-- `AI Agent` - Autonomous agent
-- `Basic LLM Chain` - Simple prompt
-- `Vector Store` - RAG retrieval
-- `Chat Model` - LLM connection
 
 ## Common Workflow Patterns
 
@@ -83,24 +156,23 @@ Workflow = Trigger Node → Action Nodes → Output
 Webhook → Validate → Process → Respond to Webhook
 ```
 
-### 2. Schedule → Sync
+### 2. Schedule → ETL with Error Handling
 ```
-Schedule → Fetch API → Transform → Update Database
+Schedule → Fetch API → Transform → Filter → Load DB
 ```
 
-### 3. AI Chat
+### 3. AI Chat Agent with Tools
 ```
 Chat Trigger → AI Agent → Response
                   ↑
-             Chat Model + Tools
+             Chat Model + Memory + Tools
 ```
 
-### 4. Event → Multi-Action
+### 4. Loop with Rate Limiting
 ```
-Trigger → IF (type?)
-           → Create: Create record
-           → Update: Update record
-           → Delete: Delete record
+Trigger → Loop Over Items → Process → Wait (1s) → Back to Loop
+                          ↓ (done)
+                        Summary
 ```
 
 ## Data Structure
@@ -108,81 +180,38 @@ Trigger → IF (type?)
 n8n data format:
 ```json
 [
-  { "json": { "field": "value" }, "binary": {} },
-  { "json": { "field": "value2" }, "binary": {} }
+  { "json": { "field": "value" }, "binary": {} }
 ]
 ```
-
-## Hosting Options
-
-| Option | Command/Method |
-|--------|----------------|
-| Docker | `docker run -p 5678:5678 docker.n8n.io/n8nio/n8n` |
-| npm | `npm install n8n -g && n8n start` |
-| Cloud | https://app.n8n.cloud |
-
-## Key Environment Variables
-
-```bash
-N8N_HOST=localhost
-N8N_PORT=5678
-N8N_PROTOCOL=https
-WEBHOOK_URL=https://domain.com/
-N8N_ENCRYPTION_KEY=32-char-key
-DB_TYPE=postgresdb
-```
-
-## API Quick Reference
-
-```bash
-# List workflows
-GET /api/v1/workflows
-Header: X-N8N-API-KEY: your-key
-
-# Activate workflow
-POST /api/v1/workflows/{id}/activate
-
-# Execute workflow
-POST /api/v1/workflows/{id}/execute
-```
-
-## Troubleshooting Quick Fixes
-
-| Issue | Solution |
-|-------|----------|
-| Webhook not working | Check active + production URL |
-| Expression undefined | Use optional chaining `?.` |
-| Timeout | Increase `EXECUTIONS_TIMEOUT` |
-| Rate limited | Add Wait node between calls |
 
 ## File Structure
 
 ```
 Skills_N8N/
-├── SKILL.md              # Main skill file
-├── CLAUDE.md             # This file (AI reference)
+├── SKILL.md              # Main skill file (comprehensive)
+├── CLAUDE.md             # This file (AI quick reference)
 ├── README.md             # Thai documentation
 └── resources/
-    ├── core_concepts.md
-    ├── integrations.md
-    ├── advanced_ai.md
-    ├── code_and_expressions.md
-    ├── hosting_and_deployment.md
-    ├── api_reference.md
-    ├── workflow_patterns.md
-    └── troubleshooting.md
+    ├── core_concepts.md        # Nodes, triggers, flow logic (with JSON configs)
+    ├── integrations.md         # 400+ integrations, credentials
+    ├── advanced_ai.md          # AI/LangChain (with JSON configs)
+    ├── code_and_expressions.md # Code node, expressions, JMESPath
+    ├── hosting_and_deployment.md # Docker, scaling, env vars
+    ├── api_reference.md        # REST API endpoints
+    ├── workflow_patterns.md    # Patterns + importable workflow JSON
+    └── troubleshooting.md      # Common issues & solutions
 ```
 
 ## When to Use This Skill
 
 Use when user asks about:
-- Creating n8n workflows
-- Node configuration
-- Expression syntax
-- API integrations
-- Self-hosting n8n
-- AI/LangChain in n8n
-- Debugging workflows
+- **Creating n8n workflows** (generate importable JSON)
+- **Node configuration** (exact type identifiers and params)
+- **AI Agent workflows** (LangChain, Chat Trigger, tools)
+- **Expression syntax** ($json, $fromAI, $jmespath)
+- **API integrations** (HTTP Request, webhooks)
+- **Self-hosting n8n** (Docker, scaling, env vars)
+- **Debugging workflows** (troubleshooting, common errors)
 
 ## Resources
 
